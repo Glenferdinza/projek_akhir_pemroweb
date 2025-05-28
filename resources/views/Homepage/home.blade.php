@@ -517,28 +517,54 @@
                 <h2 class="font-bold text-5xl font-poppins mt-4">Get in <span class="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Touch</span></h2>
                 <p class="text-gray-300 mt-4 text-lg">We'd love to hear from you. Send us a message!</p>
             </div>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
-                <form action="" method="POST" class="space-y-6 reveal">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                <form action="{{ route('contact.submit') }}" method="POST" class="space-y-6 reveal">
+                    @csrf
+                    
+                    <!-- Display Success Message -->
+                    @if(session('success'))
+                        <div class="bg-green-500/20 border border-green-400 text-green-300 px-4 py-3 rounded-xl mb-4">
+                            {{ session('success') }}
+                        </div>
+                    @endif
+                    
                     <div>
                         <label for="name" class="font-semibold mb-2 block text-gray-200">Full Name</label>
-                        <input type="text" name="name" placeholder="Your Name" required 
-                               class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 hover:bg-white/15">
+                        <input type="text" id="name" name="name" placeholder="Your Name" required 
+                            class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 hover:bg-white/15"
+                            value="{{ old('name') }}">
+                        @error('name')
+                            <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
+                        @enderror
                     </div>
+                    
                     <div>
                         <label for="email" class="font-semibold mb-2 block text-gray-200">Email Address</label>
-                        <input type="email" name="email" placeholder="Your Email" required 
-                               class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 hover:bg-white/15">
+                        <input type="email" id="email" name="email" placeholder="Your Email" required 
+                            class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 hover:bg-white/15"
+                            value="{{ old('email') }}">
+                        @error('email')
+                            <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
+                        @enderror
                     </div>
+                    
                     <div>
                         <label for="message" class="font-semibold mb-2 block text-gray-200">Message</label>
-                        <textarea name="message" rows="5" placeholder="Your Message" required 
-                                  class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 resize-none hover:bg-white/15"></textarea>
+                        <textarea id="message" name="message" rows="5" placeholder="Your Message" required 
+                                class="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all duration-300 resize-none hover:bg-white/15">{{ old('message') }}</textarea>
+                        @error('message')
+                            <p class="text-red-400 text-sm mt-2">{{ $message }}</p>
+                        @enderror
                     </div>
+                    
                     <button type="submit" class="w-full py-4 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-xl hover:shadow-xl transition-all duration-300 transform hover:scale-105 btn-glow">
                         Send Message
                     </button>
                 </form>
+                
+                <!-- Bagian kedua dari grid bisa diisi dengan konten lain -->
+                <div class="reveal">
+                    <!-- Contact info atau konten lainnya -->
                 
                 <div class="space-y-8 reveal">
                     <div class="glass-effect rounded-3xl p-8">
@@ -660,11 +686,19 @@
                         <h5 class="font-bold text-xl mb-2">Join Our Community!</h5>
                         <p class="text-sm mb-4 opacity-90">Get notified about new events</p>
                         <div class="flex space-x-2">
-                            <input type="email" placeholder="Enter your email" 
-                                   class="flex-1 px-4 py-2 rounded-lg bg-white/20 border border-white/30 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/50">
-                            <button class="px-6 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-300">
-                                Subscribe
-                            </button>
+                            <form action="{{ route('subscribe') }}" method="POST" class="flex gap-2">
+                                @csrf
+                                <input type="email" name="email" placeholder="Enter your email" required 
+                                    class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    value="{{ old('email') }}">
+                                <button type="submit" class="px-6 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-300">
+                                    Subscribe
+                                </button>
+                            </form>
+
+                            @error('email')
+                                <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            @enderror
                         </div>
                     </div>
                 </div>

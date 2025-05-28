@@ -73,7 +73,7 @@ class AuthController extends Controller
     public function register(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|min:2',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
@@ -82,6 +82,7 @@ class AuthController extends Controller
             'bio' => 'nullable|string|max:1000',
         ], [
             'name.required' => 'Nama wajib diisi.',
+            'name.min' => 'Nama minimal 2 karakter.',
             'name.max' => 'Nama maksimal 255 karakter.',
             'email.required' => 'Email wajib diisi.',
             'email.email' => 'Format email tidak valid.',
@@ -101,22 +102,32 @@ class AuthController extends Controller
                 ->withInput($request->except('password', 'password_confirmation'));
         }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => $request->password, // Will be hashed by model mutator
-            'phone' => $request->phone,
-            'institution' => $request->institution,
-            'student_id' => $request->student_id,
-            'bio' => $request->bio,
-        ]);
+        try {
+            // Create user dengan hash password yang eksplisit
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password), // Pastikan password di-hash
+                'phone' => $request->phone,
+                'institution' => $request->institution,
+                'student_id' => $request->student_id,
+                'bio' => $request->bio,
+            ]);
 
-        event(new Registered($user));
+            // Fire registered event
+            event(new Registered($user));
 
-        Auth::login($user);
+            // Auto login setelah registrasi
+            Auth::login($user);
 
-        return redirect()->route('dashboard')
-            ->with('success', 'Registrasi berhasil! Selamat datang, ' . $user->name);
+            return redirect()->route('dashboard')
+                ->with('success', 'Registrasi berhasil! Selamat datang, ' . $user->name);
+
+        } catch (\Exception $e) {
+            return back()
+                ->with('error', 'Registrasi gagal. Silakan coba lagi.')
+                ->withInput($request->except('password', 'password_confirmation'));
+        }
     }
 
     /**
@@ -231,7 +242,98 @@ class AuthController extends Controller
     }
 
     /**
-     * Show dashboard (contoh halaman setelah login)
+     * Show user profile
+     */
+    public function profile()
+    {
+        return view('auth.profile', [
+            'user' => Auth::user()
+        ]);
+    }
+
+    /**
+     * Update user profile
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = Auth::user();
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255|min:2',
+            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'nullable|string|max:20',
+            'institution' => 'nullable|string|max:255',
+            'student_id' => 'nullable|string|max:50',
+            'bio' => 'nullable|string|max:1000',
+        ], [
+            'name.required' => 'Nama wajib diisi.',
+            'name.min' => 'Nama minimal 2 karakter.',
+            'email.required' => 'Email wajib diisi.',
+            'email.unique' => 'Email sudah digunakan.',
+            'phone.max' => 'Nomor telepon maksimal 20 karakter.',
+            'institution.max' => 'Institusi maksimal 255 karakter.',
+            'student_id.max' => 'ID mahasiswa maksimal 50 karakter.',
+            'bio.max' => 'Bio maksimal 1000 karakter.',
+        ]);
+
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        try {
+            $user->update($request->only(['name', 'email', 'phone', 'institution', 'student_id', 'bio']));
+
+            return back()->with('success', 'Profil berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal memperbarui profil. Silakan coba lagi.');
+        }
+    }
+
+    /**
+     * Update user password
+     */
+    public function updatePassword(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'current_password' => 'required',
+            'password' => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Password saat ini wajib diisi.',
+            'password.required' => 'Password baru wajib diisi.',
+            'password.min' => 'Password minimal 8 karakter.',
+            'password.confirmed' => 'Konfirmasi password tidak cocok.',
+        ]);
+
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator, 'password');
+        }
+
+        $user = Auth::user();
+
+        // Check if current password is correct
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()
+                ->withErrors(['current_password' => 'Password saat ini salah.'], 'password');
+        }
+
+        try {
+            $user->update([
+                'password' => Hash::make($request->password)
+            ]);
+
+            return back()->with('success', 'Password berhasil diperbarui.');
+
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal memperbarui password. Silakan coba lagi.');
+        }
+    }
+
+    /**
+     * Show dashboard
      */
     public function dashboard()
     {

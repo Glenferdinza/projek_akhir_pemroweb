@@ -77,16 +77,17 @@ class DashboardController extends Controller
         $upcomingEvents = EventRegistration::with('event')
             ->where('user_id', $user->id)
             ->whereHas('event', function($query) {
-                $query->where('start_date', '>=', Carbon::now())
-                      ->where('start_date', '<=', Carbon::now()->addDays(7));
+                $query->where('event_date', '>=', Carbon::now())
+                      ->where('event_date', '<=', Carbon::now()->addDays(7));
             })
             ->limit(5)
             ->get();
 
         // Get events created by user that are starting soon
-        $myUpcomingEvents = Event::where('user_id', $user->id)
-            ->where('start_date', '>=', Carbon::now())
-            ->where('start_date', '<=', Carbon::now()->addDays(7))
+        // Change 'user_id' to the actual column name in your events table
+        $myUpcomingEvents = Event::where('created_by', $user->id) // or 'organizer_id'
+            ->where('event_date', '>=', Carbon::now())
+            ->where('event_date', '<=', Carbon::now()->addDays(7))
             ->limit(5)
             ->get();
 
@@ -96,8 +97,8 @@ class DashboardController extends Controller
                     'type' => 'event_reminder',
                     'title' => 'Event Reminder',
                     'message' => "Event '{$registration->event->title}' akan dimulai pada " . 
-                               Carbon::parse($registration->event->start_date)->format('d M Y H:i'),
-                    'date' => $registration->event->start_date,
+                               Carbon::parse($registration->event->event_date)->format('d M Y H:i'),
+                    'date' => $registration->event->event_date,
                     'event_id' => $registration->event->id
                 ];
             }),
@@ -106,8 +107,8 @@ class DashboardController extends Controller
                     'type' => 'my_event_reminder',
                     'title' => 'Event Management',
                     'message' => "Event Anda '{$event->title}' akan dimulai pada " . 
-                               Carbon::parse($event->start_date)->format('d M Y H:i'),
-                    'date' => $event->start_date,
+                               Carbon::parse($event->event_date)->format('d M Y H:i'),
+                    'date' => $event->event_date,
                     'event_id' => $event->id
                 ];
             })
@@ -127,7 +128,8 @@ class DashboardController extends Controller
         $user = Auth::user();
         
         // Events created by user per month (last 6 months)
-        $eventsCreated = Event::where('user_id', $user->id)
+        // Change 'user_id' to the actual column name in your events table
+        $eventsCreated = Event::where('created_by', $user->id) // or 'organizer_id'
             ->where('created_at', '>=', Carbon::now()->subMonths(6))
             ->selectRaw('MONTH(created_at) as month, YEAR(created_at) as year, COUNT(*) as count')
             ->groupBy('month', 'year')
@@ -199,7 +201,8 @@ class DashboardController extends Controller
         $activities = collect();
 
         // Recent events created
-        $recentCreated = Event::where('user_id', $user->id)
+        // Change 'user_id' to the actual column name in your events table
+        $recentCreated = Event::where('created_by', $user->id) // or 'organizer_id'
             ->latest()
             ->limit(5)
             ->get()
@@ -251,14 +254,16 @@ class DashboardController extends Controller
     private function getBasicStats($user)
     {
         $stats = [
-            'events_created' => Event::where('user_id', $user->id)->count(),
+            // Change 'user_id' to the actual column name in your events table
+            'events_created' => Event::where('created_by', $user->id)->count(), // or 'organizer_id'
             'events_registered' => EventRegistration::where('user_id', $user->id)->count(),
             'upcoming_events' => EventRegistration::where('user_id', $user->id)
                 ->whereHas('event', function($query) {
-                    $query->where('start_date', '>=', Carbon::now());
+                    $query->where('event_date', '>=', Carbon::now());
                 })
                 ->count(),
-            'total_attendees' => Event::where('user_id', $user->id)
+            // Change 'user_id' to the actual column name in your events table
+            'total_attendees' => Event::where('created_by', $user->id) // or 'organizer_id'
                 ->withCount('registrations')
                 ->get()
                 ->sum('registrations_count')
@@ -272,7 +277,8 @@ class DashboardController extends Controller
      */
     private function getUserRecentEvents($user)
     {
-        return Event::where('user_id', $user->id)
+        // Change 'user_id' to the actual column name in your events table
+        return Event::where('created_by', $user->id) // or 'organizer_id'
             ->latest()
             ->limit(5)
             ->get()
@@ -280,10 +286,10 @@ class DashboardController extends Controller
                 return [
                     'id' => $event->id,
                     'title' => $event->title,
-                    'start_date' => $event->start_date,
+                    'start_date' => $event->event_date, // changed from start_date to event_date
                     'location' => $event->location,
                     'registrations_count' => $event->registrations_count ?? 0,
-                    'status' => Carbon::parse($event->start_date)->isPast() ? 'completed' : 'upcoming'
+                    'status' => Carbon::parse($event->event_date)->isPast() ? 'completed' : 'upcoming'
                 ];
             });
     }
@@ -296,7 +302,7 @@ class DashboardController extends Controller
         return EventRegistration::with('event')
             ->where('user_id', $user->id)
             ->whereHas('event', function($query) {
-                $query->where('start_date', '>=', Carbon::now());
+                $query->where('event_date', '>=', Carbon::now());
             })
             ->orderBy('created_at', 'desc')
             ->limit(5)
@@ -305,7 +311,7 @@ class DashboardController extends Controller
                 return [
                     'id' => $registration->event->id,
                     'title' => $registration->event->title,
-                    'start_date' => $registration->event->start_date,
+                    'start_date' => $registration->event->event_date, // changed from start_date to event_date
                     'location' => $registration->event->location,
                     'registration_date' => $registration->created_at
                 ];

@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -9,21 +10,21 @@ return new class extends Migration
     {
         Schema::create('event_registrations', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('event_id');
-            $table->unsignedBigInteger('user_id');
-            $table->string('registration_status')->default('pending'); // pending, confirmed, cancelled
-            $table->datetime('registered_at');
-            $table->json('additional_data')->nullable(); // For storing extra registration info
+            $table->foreignId('event_id')->constrained('events')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->enum('registration_status', ['pending', 'confirmed', 'cancelled', 'waitlist'])->default('pending');
+            $table->dateTime('registered_at')->default(now());
+            $table->json('additional_data')->nullable(); // For storing extra form data
             $table->text('notes')->nullable();
             $table->boolean('payment_status')->default(false);
-            $table->string('payment_method')->nullable();
+            $table->enum('payment_method', ['cash', 'transfer', 'credit_card', 'e_wallet'])->nullable();
             $table->decimal('amount_paid', 10, 2)->default(0);
             $table->timestamps();
             
-            $table->foreign('event_id')->references('id')->on('events')->onDelete('cascade');
-            $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            // Ensure unique registration per user per event
             $table->unique(['event_id', 'user_id']);
-            $table->index('registration_status');
+            $table->index(['user_id']);
+            $table->index(['event_id', 'registration_status']);
         });
     }
 

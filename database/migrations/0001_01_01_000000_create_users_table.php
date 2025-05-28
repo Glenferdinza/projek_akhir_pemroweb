@@ -20,6 +20,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
             $table->string('institution')->nullable();
             $table->string('student_id')->nullable();
+            $table->enum('role', ['user', 'organizer', 'admin'])->default('user');
             $table->string('profile_image')->nullable();
             $table->text('bio')->nullable();
             $table->timestamp('last_login_at')->nullable();
